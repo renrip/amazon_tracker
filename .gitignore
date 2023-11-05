@@ -1,0 +1,8 @@
+__pycache__/
+# letting .venv directory into repo so dev and deployment local are functional
+.idea/
+*.log
+# Custom project stuff below
+*.json
+*.csv
+
