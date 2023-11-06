@@ -45,6 +45,8 @@ def main():
         # output error, and return with an error code
         print (str(err))
 
+    # Options gathered. Min code starts below
+
     if log_file :
         wi = WatchedItems(log_file)
     else:
@@ -64,6 +66,7 @@ def main():
         row["time"] = timestamp.strftime("%H:%M:%S")
 
 
+        row["group"] = item['group']
         row["url"] = item['url']
         row["desc"] = item['desc']
         row["alert_price"] = float(item['alert_price'])

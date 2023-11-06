@@ -76,6 +76,14 @@ class WatchedItems():
             alert_price_index = None
             first_row = values[0]
 
+            # Check for "group" column in first row
+            if "group" in first_row:
+                group_index = first_row.index("group")
+                # print(f"group_index: {group_index}")
+            else:
+                self.set_not_loaded_status('"group" column not present')
+                return
+
             # Check for "url" column in first row
             if "url" in first_row:
                 url_index = first_row.index("url")
@@ -109,6 +117,7 @@ class WatchedItems():
                 if len(row) > max_column:
                     self.loaded = True
                     item_dict = {}
+                    item_dict["group"] = row[group_index]
                     item_dict["url"] = row[url_index]
                     item_dict["desc"] = row[desc_index]
                     item_dict["alert_price"] = row[alert_price_index]
@@ -119,7 +128,8 @@ class WatchedItems():
             # print(f"items[]: {self.items}")
 
         except HttpError as err:
-            self.set_not_loaded_status('"alert_price" column not present' + "\n" + err)
+            self.set_not_loaded_status('HttpError exception:' + "\n" + err)
+            return
 
     def log_file_ready(self)-> bool:
 
@@ -130,15 +140,10 @@ class WatchedItems():
         else:
             try:
                 log_file = open(self.csv_log_file, "a")
-                log_file.write("url" + "," + 
-                            "desc" + "," +
-                            "date" + "," + 
-                            "time" + "," + 
-                            "price" + "," + 
-                            "disc" + "," + 
-                            "disc_pct" + "," + 
-                            "price_final" + "," + 
-                            "title"+ 
+                log_file.write("group" + "," + "url" + "," + "desc" + "," +
+                               "date" + "," + "time" + "," + 
+                               "price" + "," + "disc" + "," + "disc_pct" + "," + "price_final" + "," + 
+                                "title"+ 
                                 "\n")
                 log_file.close()
             except:
@@ -161,7 +166,8 @@ class WatchedItems():
                 title = title.replace(',', '.')
                 title = title.replace('"', '^')
 
-                log_file.write(item["url"] + "," + 
+                log_file.write(item["group"] + "," + 
+                               item["url"] + "," +
                                item["desc"] + "," +
                                item["date"] + "," +
                                item["time"] + "," + 
