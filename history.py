@@ -1,12 +1,56 @@
+import time, json, sys, getopt
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
- 
 
-# Twilio stuff
-account_sid = "ACdaa3833a3a598412c702a06412dc8f0f"
-auth_token = "8fb722f2fd39a73a3aed9a5eda133204"
-#auth_token = os.environ.get("AUTH_TOKEN")
+# print(f"sys,argv: {sys.argv}")
+
+run_mode_values = ["i", "s", "c"]
+user_opts = {"log_file": "watched_items.log.csv",
+                "run_mode": "i"}
+
+argumentList = sys.argv[1:]
+options = "l:m:"
+
+try:
+    # Parsing argument
+    arguments, values = getopt.getopt(argumentList, options)
+    # print(arguments)
+    # print(values)
+
+    # checking each argument
+    for currentArgument, currentValue in arguments:
+
+        if currentArgument in ("-l"):
+            if type(currentValue) == str and len(currentValue) == 0:
+                print("log_file (-l) option must have a value")
+            else:
+                user_opts["log_file"] = currentValue
+            # print(f"Will log to: {user_opts['log_file']}")
+
+        elif currentArgument in ("-m"):
+            if currentValue in run_mode_values:
+                user_opts["run_mode"] = currentValue
+            else:
+                print(f"run_mode '{currentValue}' not expected. (i=interactive, s=silent, c=cleanup)")
+            # print(f"run_mode is: {user_opts['run_mode']}")
+
+        else:
+            print(f"Unexpected arg ({currentArgument} {currentValue}): ignored")
+            
+    if len(values) > 0:
+        print(f"Unexpected value(s): {values} : ignored")
+
+    print(f"run_mode: {user_opts['run_mode']}")
+    print(f"log_file: {user_opts['log_file']}")
+    
+except getopt.error as err:
+    # output error, and return with an error code
+    print (str(err))
+
+
+# Options gathered. Min code starts below
+
 
 # Load raw data
 df = pd.read_csv("watched_items_log.csv")
@@ -91,7 +135,13 @@ for g in groups:
         ax.legend()
         
         plt.tight_layout()
-    plt.show()    
+
+    if user_opts["run_mode"] == "s":
+        plt.savefig(f"./images/{g}.png")
+        plt.close()
+        ax = None
+    else:
+        plt.show()
 
 # now make single item plots for un grouped items
 
@@ -106,7 +156,6 @@ for key in item_prices:
     # 'group' and 'desc' values of last row are used
     # this lets the latest values from the log.guide plot generation
     item_group = str(item_prices[key][-1:].group.item())
-    print(item_group)
     item_desc = str(item_prices[key][-1:].desc.item())
     if item_group not in groups:
         if ax == None:
