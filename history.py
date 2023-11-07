@@ -1,14 +1,24 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+ 
+
+# Twilio stuff
+account_sid = "ACdaa3833a3a598412c702a06412dc8f0f"
+auth_token = "8fb722f2fd39a73a3aed9a5eda133204"
+#auth_token = os.environ.get("AUTH_TOKEN")
 
 # Load raw data
 df = pd.read_csv("watched_items_log.csv")
 print(f"LEN-raw: {len(df)}")
 # print(df)
 
-# clean duplicates based on url,date, and final_price
-df = df.drop_duplicates(subset=['url','date','price_final'])
+# clean duplicates based on url,date, and final_price (and group)
+
+# had to add group because if group gets added mid-day then dropping
+# duplicates without considering group would choose the earlier one without it.
+# perhaps ther is a better solution, like grabbing the group earlier?
+df = df.drop_duplicates(subset=['group','url','date','price_final'])
 print(f"LEN-clean: {len(df)}")
 # print(df)
 
@@ -18,35 +28,27 @@ print(f"LEN-urls: {len(urls)}\n {urls}")
 
 # get list of unique groups. use to group items into plots
 groups_df = df.group.unique()
-# print(f"groups_df type/len()/value: {type(groups_df)}/{len(groups_df)}/{groups_df}")
+print(f"groups_df type/len()/value: {type(groups_df)}/{len(groups_df)}/{groups_df}")
 
 # only keep str rows (Pandas puts a float/NaN when a column value is not present)
 groups = [g for g in groups_df if type(g) is not float]
-# print(f"groups type/len()/value: {type(groups)}/{len(groups)}/{groups}")
+print(f"groups type/len()/value: {type(groups)}/{len(groups)}/{groups}")
 
 
 
 # Build a dict () of dataframes split by the url (url is dict index)
 item_prices = {}
-for url in urls[0:]:
+for url in urls:
     df_url = df.loc[df["url"] == url]
     item_prices[url] = df_url
     # print(f"{len(df_url)} unique prices for item {url}")
     # print(df_url)
 
-# Build a dict of dataframes split by the url (url is dict index)
-# item_groups = {}
-# for url in urls[0:]:
-#     df_group = df.loc[df["group"] == url]
-#     item_groups[url] = df_group
-#     print(f"{len(df_group)} unique groups for url {url}")
-#     print(df_group)
-
 # print(f"item_prices type: {type(item_prices)}\n {item_prices}")
 
 # TODO Figure out a more elegant way to loop and separate plots
 # TODO Figure out how to dump plots to filesystem rather than display
-# TODO Make the file saving configurable via command line options
+# TODO Impl different run modes, configurable via command line options
 
 for g in groups:
 
@@ -132,4 +134,5 @@ for key in item_prices:
     ax.legend()
     
     plt.tight_layout()
-    plt.show()    
+    plt.show()
+

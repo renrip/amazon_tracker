@@ -5,6 +5,8 @@ import lxml
 from datetime import datetime as dt
 
 from watched_items import WatchedItems
+from my_messaging import send_twilio_message
+
 
 
 
@@ -125,7 +127,10 @@ def main():
         row["price_final"] = price_final
 
         if price_final <= row['alert_price']:
-            print(f"{row['desc']} ({row['url']}) is at or below it's alert_price")
+            send_twilio_message(f"{item['url']} ({item['desc']}) is now ${price_final}")
+
+            
+            
 
         output.append(row)
 
