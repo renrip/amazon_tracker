@@ -1,32 +1,65 @@
 from __future__ import print_function
 
+import os
 import os.path
 from pathlib import Path
 
+from my_messaging import send_twilio_message
+
+# Google Workspace imports
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+# Google Workspace setup
+# TODO figure out how to do writes to Sheets docs
 # If modifying these scopes, delete the file token.json.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
-# The ID and range of a sample spreadsheet.
-SAMPLE_SPREADSHEET_ID = '1fYlHIvW5hB1w69aFPSPxCf9cz4l5HM5Pk0ydBietdL8'
-# SAMPLE_RANGE_NAME = 'R1C1:R5C3'
-SAMPLE_RANGE_NAME = 'sheet1'
+google_client_id= os.environ.get("GOOGLE_CLIENT_ID")
+google_client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
+
+google_client_config = {
+    "installed": {
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "redirect_uris": ["http://localhost"],
+        "project_id": "my-cloud-sheets",
+        "client_id": google_client_id,
+        "client_secret": google_client_secret
+    }
+}
+
+# from old credentials.jason (DELETE after environment stuff works)
+{"installed":
+ {#"client_id":"441663492916-n01oma9kvcg49n3ta6sj20a6a4sho723.apps.googleusercontent.com",
+  #"project_id":"my-cloud-sheets",
+  #"auth_uri":"https://accounts.google.com/o/oauth2/auth",
+  #"token_uri":"https://oauth2.googleapis.com/token",
+  #"auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
+  #"client_secret":"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",
+  #"redirect_uris":["http://localhost"]
+  }
+}
+
+
+# The ID and range of the WatchedItems Sheets doc
+SPREADSHEET_ID = '1fYlHIvW5hB1w69aFPSPxCf9cz4l5HM5Pk0ydBietdL8'
+RANGE_NAME = 'sheet1'
 
 class WatchedItems():
 
-    def __init__(self,csv_log_file="watched_items_log.csv") -> None:
+    def __init__(self, csv_log_file="watched_items_log.csv") -> None:
         self.loaded = False
         self.items = []
         self.error_msg = None
         self.csv_log_file = csv_log_file
         self.load_list()
 
-    def set_not_loaded_status(self, msg="Default error message"):
+    def set_not_loaded_status(self, msg="Unspecified"):
         self.loaded = False
         self.items = []
         self.error_msg = msg
@@ -43,24 +76,38 @@ class WatchedItems():
         if os.path.exists('token.json'):
             creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
+        # TODO recreating the token.json file does not work now that my project 
+        #      (my-cloud-sheets). Fix by deleting the token.json and chasing cheese
+
         # If there are no (valid) credentials available, let the user log in.
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', SCOPES)
-                creds = flow.run_local_server(port=0)
-            # Save the credentials for the next run
-            with open('token.json', 'w') as token:
-                token.write(creds.to_json())
+        try:
+            if not creds or not creds.valid:
+                if creds and creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                else:
+                    # flow = InstalledAppFlow.from_client_secrets_file(
+                    #     'credentials.json', SCOPES)
+
+                    # Switching to environment based secrets
+                    flow = InstalledAppFlow.from_client_config(google_client_config, SCOPES)
+                    creds = flow.run_local_server(port=0)
+                # Save the credentials for the next run
+                with open('token.json', 'w') as token:
+                    token.write(creds.to_json())
+
+        except Exception as inst:
+            # hopefully this is very rare
+            send_twilio_message(f"WatchedItems.load_list(): Unexpected Exception: {type(inst)=}")
+            print("Exception in WatchedItems.load_list()")
+            print(f"Unexpected {inst=}, {type(inst)=}")
+            exit()
 
         try:
             service = build('sheets', 'v4', credentials=creds)
 
             # Call the Sheets API
             sheet = service.spreadsheets()
-            result = sheet.values().get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME).execute()
+            result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
             values = result.get('values', [])
 
             if not values:

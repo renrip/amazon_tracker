@@ -23,6 +23,8 @@ def main():
     log_file = None
 
     argumentList = sys.argv[1:]
+
+    # TODO Add option to load watched items from file (default="watched_items.json")
     options = "l:i:"
 
     try:
@@ -54,11 +56,12 @@ def main():
     else:
         wi = WatchedItems()
 
+    # TODO encapsulate the scraping to allow cleaner code, swaping scrapers
     watched_items = wi.items
 
     # collected rows not used anymore. logged one by one
     # leaving in in case I want to add a batch loggin method.
-    output = []
+    #output = []
 
     for item in watched_items:
         # print(item)
@@ -132,7 +135,7 @@ def main():
             
             
 
-        output.append(row)
+        #output.append(row)
 
         wi.log_item(row)
 
