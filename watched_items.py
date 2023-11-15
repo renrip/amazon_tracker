@@ -33,19 +33,6 @@ google_client_config = {
     }
 }
 
-# from old credentials.jason (DELETE after environment stuff works)
-{"installed":
- {#"client_id":"441663492916-n01oma9kvcg49n3ta6sj20a6a4sho723.apps.googleusercontent.com",
-  #"project_id":"my-cloud-sheets",
-  #"auth_uri":"https://accounts.google.com/o/oauth2/auth",
-  #"token_uri":"https://oauth2.googleapis.com/token",
-  #"auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
-  #"client_secret":"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",
-  #"redirect_uris":["http://localhost"]
-  }
-}
-
-
 # The ID and range of the WatchedItems Sheets doc
 SPREADSHEET_ID = '1fYlHIvW5hB1w69aFPSPxCf9cz4l5HM5Pk0ydBietdL8'
 RANGE_NAME = 'sheet1'
