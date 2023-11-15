@@ -7,12 +7,11 @@ import os
 
 # I will modify all code to use keys/tokens stored in my environment.
 
-# Twilio
-twilio_account_sid= os.environ.get("TWILIO_ACCOUNT_SID")
-twilio_auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
-
 def send_twilio_message(body: str, dest :str="+17209613665"):
     print("Sending SMS message via Twilio")
+    twilio_account_sid= os.environ.get("TWILIO_ACCOUNT_SID")
+    twilio_auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
+
     client = Client(twilio_account_sid, twilio_auth_token)
 
     message = client.messages \
@@ -25,7 +24,7 @@ def send_twilio_message(body: str, dest :str="+17209613665"):
     print(message.status)
 
 def main():
-    send_twilio_message("Testing from message module")
+    send_twilio_message("Dev testing message. ignore!")
 
 if __name__ == '__main__':
     main()
