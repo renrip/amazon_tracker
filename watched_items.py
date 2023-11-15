@@ -77,7 +77,8 @@ class WatchedItems():
             creds = Credentials.from_authorized_user_file('token.json', SCOPES)
 
         # TODO recreating the token.json file does not work now that my project 
-        #      (my-cloud-sheets). Fix by deleting the token.json and chasing cheese
+        #      (my-cloud-sheets) is public. Fix by deleting the token.json and 
+        #      chasing cheese
 
         # If there are no (valid) credentials available, let the user log in.
         try:
@@ -203,6 +204,12 @@ class WatchedItems():
         if self.log_file_ready():
             with open(self.csv_log_file, "a") as log_file:
 
+                # Replace bad chars for CSV output in desc
+                # so the user does not have to think about this in the spreadsheet
+                desc = item["desc"]
+                desc = desc.replace(',', '.')
+                desc = desc.replace('"', '^')
+
                 # trim the "title" to max of 40 chars
                 title_max_len = 40
                 title = item["title"]
@@ -215,7 +222,7 @@ class WatchedItems():
 
                 log_file.write(item["group"] + "," + 
                                item["url"] + "," +
-                               item["desc"] + "," +
+                               desc + "," +
                                item["date"] + "," +
                                item["time"] + "," + 
                                str(item["price"]) + "," + 
