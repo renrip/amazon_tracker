@@ -62,6 +62,8 @@ class WatchedItems():
         # time.
         if os.path.exists('token.json'):
             creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        else:
+            print("WatchedItems.load_list(): No stored Google creds (token.json)")
 
         # TODO recreating the token.json file does not work now that my project 
         #      (my-cloud-sheets) is public. Fix by deleting the token.json and 
@@ -71,12 +73,10 @@ class WatchedItems():
         try:
             if not creds or not creds.valid:
                 if creds and creds.expired and creds.refresh_token:
+                    print("WatchedItems.load_list(): Goggle creds expired, refreshing")
                     creds.refresh(Request())
                 else:
-                    # flow = InstalledAppFlow.from_client_secrets_file(
-                    #     'credentials.json', SCOPES)
-
-                    # Switching to environment based secrets
+                    print("WatchedItems.load_list(): Creating Goggle creds")
                     flow = InstalledAppFlow.from_client_config(google_client_config, SCOPES)
                     creds = flow.run_local_server(port=0)
                 # Save the credentials for the next run
@@ -85,10 +85,10 @@ class WatchedItems():
 
         except Exception as inst:
             # hopefully this is very rare
-            send_twilio_message(f"WatchedItems.load_list(): Unexpected Exception: {type(inst)=}")
-            print("Exception in WatchedItems.load_list()")
+            send_twilio_message(f"WatchedItems.load_list(): Unexpected Exception type:{type(inst)=}")
+            print("WatchedItems.load_list(): Exception during Google Workspace setup")
             print(f"Unexpected {inst=}, {type(inst)=}")
-            exit()
+            exit(-1)
 
         try:
             service = build('sheets', 'v4', credentials=creds)
@@ -102,53 +102,37 @@ class WatchedItems():
                 self.set_not_loaded_status('Spreadsheet data not retrieved')
                 return
             
-            # Sanity check the loaded data
-            #   - Check first row for expected headings
-            #   - setup vars for the rest of the method processing
-
             # print(f"values: {values}")
-            url_index = None
-            alert_price_index = None
+
             first_row = values[0]
+            indices = [] # Build this to find the max index of our required columns
 
-            # Check for "group" column in first row
-            if "group" in first_row:
+            # Check for required columns
+            if "group" in first_row and \
+                "url" in first_row and \
+                "desc" in first_row and \
+                "alert_price" in first_row:
                 group_index = first_row.index("group")
-                # print(f"group_index: {group_index}")
-            else:
-                self.set_not_loaded_status('"group" column not present')
-                return
-
-            # Check for "url" column in first row
-            if "url" in first_row:
+                indices.append(group_index)
                 url_index = first_row.index("url")
-                # print(f"url_index: {url_index}")
-            else:
-                self.set_not_loaded_status('"url" column not present')
-                return
-            
-            # Check for "desc" column in first row
-            if "desc" in first_row:
+                indices.append(url_index)
                 desc_index = first_row.index("desc")
-                # print(f"url_index: {url_index}")
-            else:
-                self.set_not_loaded_status('"desc" column not present')
-                return            
-
-            # Check for "alert_price" column in first row
-            if "alert_price" in first_row:
+                indices.append(desc_index)
                 alert_price_index = first_row.index("alert_price")
-                # print(f"alert_price_index: {alert_price_index}")
+                indices.append(alert_price_index)
             else:
-                self.set_not_loaded_status('"alert_price" column not present')
+                self.set_not_loaded_status('Not all required columns present')
                 return
 
+            # Build a list of items (dicts)
             self.items = []
-            max_column = max(url_index, alert_price_index)
+            max_column = max(indices)
             # print(f"max_column: {max_column}")
 
             for row in values[1:]:
                 # print(f"row: {row}")
+                # Checking this allows us to simply ignore incomplete rows
+                # rather than letting weird data blow us up
                 if len(row) > max_column:
                     self.loaded = True
                     item_dict = {}
