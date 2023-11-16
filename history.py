@@ -15,8 +15,9 @@ user_opts = {
     "compress": False ,
     }
 
-# override items for testing.
-user_opts["log_file"] = "cron_items_log.csv"
+# override user_opts stuff for dev/testing
+
+# user_opts["log_file"] = "cron_items_log.csv"
 # user_opts["compress"] = True
 # user_opts["trim"] = "B0BF5NPNXY"
 
@@ -174,8 +175,6 @@ def compressor():
 
     print("Entering - compressor()")
 
-    # TODO figure out how to ensure that the last group value(per url) remains last in hte new file
-
     df = pd.read_csv(user_opts["log_file"])
     len_orig = len(df)
     print(f"compressor(): starting log size is {len(df)} rows")
@@ -267,7 +266,6 @@ def main():
             elif currentArgument in ("-m"):
                 user_opts["compress"] = True
 
-            # TODO update code to respect "maint_mode" == False
             elif currentArgument in ("-l"):
                 user_opts["maint_mode"] = True
 
@@ -324,7 +322,8 @@ def main():
 
     # if no log_file updates pending just run the analyzer
     if not log_file_updated:
-        analyzer()
+        if not user_opts["maint_mode"]:
+            analyzer()
         exit()
 
     # Backup,update log_file to file system
@@ -338,8 +337,9 @@ def main():
         os.rename(user_opts["log_file"], backup_fullname)
     df.to_csv(user_opts["log_file"], index=False, mode="w")
 
-    # Run the analyzer on the updated logfile
-    analyzer()
+    # Run the analyzer on the updated logfile (only if not in maint_mode)
+    if not user_opts["maint_mode"]:
+        analyzer()
 
 if __name__ == '__main__':
     main()
