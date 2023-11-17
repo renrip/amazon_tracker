@@ -13,26 +13,29 @@ user_opts = {
     "maint_mode": False ,
     "log_file": "watched_items_log.csv" ,
     "compress": False ,
+    "yes_mode": False ,
     }
 
 # override user_opts stuff for dev/testing
 # ******** COMMENT these BEFORE commiting ******
 # user_opts["silent_mode"] = True
 # user_opts["plot_dir"] = "./images"
-# user_opts["log_file"] = "cron_items_log.csv"
-# user_opts["maint_mode"] = True
-# user_opts["compress"] = True
+user_opts["log_file"] = "cron_items_log.csv"
+user_opts["maint_mode"] = True
+user_opts["compress"] = True
+# user_opts["yes_mode"] = True
 # user_opts["trim"] = "TESTING"
 
 USAGE = """Usage: python3 history.py <options>\n\
 Tool to analyze, visualize, and maintain log_file created by main.py\n
 Options:\n
-    -s Silent/save mode. Saves analysis plots to '-d ' directory
-    -d Directory to write graphs. (default "./")
-    -m log file maintenance operations only. Do not analyze log_file
-    -l log file to analyze or mainta== default "watched_items_log.csv")
-    -c compress log file (removes redundant entries from the log file)
-    -t Trim log file <url substring or group name> (Will confirm actions)
+    -s Silent mode. Quietly saves analysis plots to '-d ' directory
+    -d <directory> to write plots to. (default "./")
+    -m Maintenance operations (-c, -t) only. Do not analyze log_file
+    -l <log file name> to analyze or mainta== default "watched_items_log.csv")
+    -c Compress log file (removes redundant entries from the log file)
+    -t <string> Trim log file rows with <string> as 'group' or within 'url'
+    -y YES mode. Do trim operations without prompting
     -h Help"""
 
 
@@ -222,21 +225,24 @@ def compressor(df):
 
 def trimmer(keyword :str, df):
     print(f"Entering trimmer(): keyword: \"{keyword}\"")
-    # if no working DataFrame passed in then create from the log
-    # if df == None:
-    #     df = pd.read_csv(user_opts["log_file"])
     print(f"Checking for \"{keyword}\" in group column...")
     print(f"LEN-start: {len(df)}")
+
     orig_df_len = len(df)
 
-    # print(df)
+    # filter rows without a value in 'group' column
     df_notna_group = df[df['group'].notna()]
     # print(f"LEN-notna-group: {len(df_notna_group)}")
+
+    # pick rows with keyword as group
     df_match_group = df_notna_group[df_notna_group['group'].str.match(keyword)]
     # print(f"LEN-match-group: {len(df_match_group)}")
 
     if len(df_match_group) > 0:
-        resp = input(f"Found {len(df_match_group)} rows with group == \"{keyword}\"\nDelete these? (y,n)")
+        if user_opts["yes_mode"] == True:
+            resp = 'y'
+        else:
+            resp = input(f"Found {len(df_match_group)} rows with group == \"{keyword}\"\nDelete these? (y,n)")
     else:
         resp = 'n'
 
@@ -255,7 +261,10 @@ def trimmer(keyword :str, df):
     # print(f"LEN-match-url: {len(df_match_url)}")
 
     if len(df_match_url) > 0:
-        resp = input(f"Found {len(df_match_url)} rows where url contains \"{keyword}\"\nDelete these? (y,n)")
+        if user_opts["yes_mode"] == True:
+            resp = 'y'
+        else:
+            resp = input(f"Found {len(df_match_url)} rows where url contains \"{keyword}\"\nDelete these? (y,n)")
     else:
         resp = 'n'
 
@@ -271,8 +280,8 @@ def trimmer(keyword :str, df):
     
 def main():
     argumentList = sys.argv[1:]
-    options = "sd:ml:ct:h"
-    options_tester = ["-s", "-d", "-m", "-l", "-c", "-t", "-h"]
+    options = "sd:ml:ct:hy"
+    options_tester = ["-s", "-d", "-m", "-l", "-c", "-t", "-h", "-y"]
 
     try:
         # Parsing argument
@@ -311,6 +320,9 @@ def main():
                 print(USAGE)
                 exit(0)
 
+            elif currentArgument == "-y":
+                user_opts["yes_mode"] = True
+
         if len(values) > 0:
             print(f"Unexpected value(s): {values} : ignored")
             exit() # should raise exception
@@ -335,6 +347,7 @@ def main():
                 user_opts["log_file_basename"] = split_name[0]
             if split_name_len > 1:
                 user_opts["log_file_extension"] = split_name[-1]
+            # TODO if this can happen code to handle it
             if split_name_len > 2:
                 print(f"main(): Problem processing log_file name \"{user_opts['log_file']}\"") 
                 exit(-1)
@@ -348,35 +361,33 @@ def main():
 
 
 
-    # Options gathered. Main code starts below
-    df = pd.read_csv(user_opts["log_file"])
-    orig_log_file_len = len(df)
-    log_file_updated = False
+    ### Options gathered. Main code starts below
 
+    # pull the log_file into a DataFrame
+    df = pd.read_csv(user_opts["log_file"])
+
+    # save original len to test for deletions later
+    orig_log_file_len = len(df)
+
+    # perform compress and trim operations prior to analyzing
     if "compress" in user_opts and user_opts["compress"] == True:
         df = compressor(df)
-        log_file_updated = True
-
 
     if "trim" in user_opts:
         df = trimmer(user_opts["trim"], df)
-        log_file_updated = True
 
-    # if no log_file updates pending just run the analyzer
-    if not log_file_updated:
-        if not user_opts["maint_mode"]:
-            analyzer()
-        exit()
-
-    # Backup,update log_file to file system
+    # Backup,update log_file to file system (if compressed or trimmed)
     if len(df) < orig_log_file_len:
         now = datetime.now()
         now_str = now.strftime("%Y%d%m_%H%M%S")
         backup_fullname = user_opts["log_file_path"] + user_opts["log_file_basename"] + \
                         '_' + now_str + user_opts["log_file_extension"]
+
+        # Make backup of current log_file
         if os.path.isfile(user_opts["log_file"]):
             os.rename(user_opts["log_file"], backup_fullname)
             print(f"Backed up log gile to: {backup_fullname}")
+
         # Write new log_file
         df.to_csv(user_opts["log_file"], index=False, mode="w")
         print(f"Updated log with {len(df)} lines")
