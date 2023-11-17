@@ -11,25 +11,29 @@ user_opts = {
     "silent_mode": False ,
     "plot_dir": "./" ,
     "maint_mode": False ,
-    "log_file": "watched_items_log.csv" , 
+    "log_file": "watched_items_log.csv" ,
     "compress": False ,
     }
 
 # override user_opts stuff for dev/testing
-
+# ******** COMMENT these BEFORE commiting ******
+# user_opts["silent_mode"] = True
+# user_opts["plot_dir"] = "./images"
 # user_opts["log_file"] = "cron_items_log.csv"
+# user_opts["maint_mode"] = True
 # user_opts["compress"] = True
-# user_opts["trim"] = "B0BF5NPNXY"
+# user_opts["trim"] = "TESTING"
 
-USAGE = """Usage: python3 history.py\n\n
-Tool to analyze, visualize, and maintain log_file created by main.py\n\n
+USAGE = """Usage: python3 history.py <options>\n\
+Tool to analyze, visualize, and maintain log_file created by main.py\n
 Options:\n
     -s Silent/save mode. Saves analysis plots to '-d ' directory
     -d Directory to write graphs. (default "./")
     -m log file maintenance operations only. Do not analyze log_file
-    -l log file to analyze or maintain (default "watched_items_log.csv")
+    -l log file to analyze or mainta== default "watched_items_log.csv")
     -c compress log file (removes redundant entries from the log file)
-    -t Trim log file <url substring or group name> (Will confirm actions)"""
+    -t Trim log file <url substring or group name> (Will confirm actions)
+    -h Help"""
 
 
 def analyzer():
@@ -74,7 +78,7 @@ def analyzer():
 
 
     for g in groups:
-
+        # print("operating on a group")
         ax = None
         # Build and display scatter plot(s)
         for key in item_prices:
@@ -115,8 +119,13 @@ def analyzer():
             
             plt.tight_layout()
 
-        if user_opts["silent_mode"]:
-            plt.savefig(f"./images/{g}.png")
+        if user_opts["silent_mode"] == True:
+            today = datetime.now()
+            today_str = today.strftime("%Y%d%m")
+            # save with a date uniquifier, overwrite any from earlier in the day
+            # print(f"Saving plt to:")
+            # print(f"{user_opts['plot_dir']}{g}_{today_str}.png")
+            plt.savefig(f"{user_opts['plot_dir']}{g}_{today_str}.png")
             plt.close()
             ax = None
         else:
@@ -126,6 +135,7 @@ def analyzer():
 
     # Build and display scatter plot(s)
     for key in item_prices:
+        # print("operating on a singleton")
         ax = None
         # print(f"item type: {type(item_prices[key])}\n {item_prices[key]}")
         # print(item_prices[key][-1:].group.item())
@@ -143,6 +153,7 @@ def analyzer():
             ax.scatter(list(item_prices[key].date.values), 
                         list(item_prices[key].price_final.values))
         else:
+            # print("failed the item in a group test")
             continue
             # ax.scatter(list(item_prices[key].date.values), 
             #             list(item_prices[key].price_final.values))
@@ -162,20 +173,33 @@ def analyzer():
         
         plt.tight_layout()
 
-        if user_opts["silent_mode"]:
-            plt.savefig(f"./images/{item_desc}.png")
+        if user_opts["silent_mode"] == True:
+            # create uniquifier to append to logfile base name
+            today = datetime.now()
+            today_str = today.strftime("%Y%d%m")
+
+            # Replace bad chars for filename in desc
+            # so the user does not have to think about this in the spreadsheet
+            item_desc_base = item_desc
+            item_desc_base = item_desc_base.replace(' ', '_')
+            item_desc_base = item_desc_base.replace('.', '_')
+
+            # save with a date uniquifier, overwrite any from earlier in the day
+            # print("Saving singleton plot to:")
+            # print(f'{user_opts["plot_dir"]}{item_desc_base}_{today_str}.png')
+            plt.savefig(f'{user_opts["plot_dir"]}{item_desc_base}_{today_str}.png')
             plt.close()
             ax = None
         else:
             plt.show()
 
-def compressor():
+def compressor(df):
     """load csv, trim to unique on
     url,date,price,disc,disc_pct,price_final"""
 
     print("Entering - compressor()")
 
-    df = pd.read_csv(user_opts["log_file"])
+    # df = pd.read_csv(user_opts["log_file"])
     len_orig = len(df)
     print(f"compressor(): starting log size is {len(df)} rows")
     # print(f"LEN-raw: {len_orig}")
@@ -196,13 +220,15 @@ def compressor():
     return df_clean
 
 
-def trimmer(keyword :str, df=None):
+def trimmer(keyword :str, df):
     print(f"Entering trimmer(): keyword: \"{keyword}\"")
     # if no working DataFrame passed in then create from the log
-    if type(df) == None:
-        df = pd.read_csv(user_opts["log_file"])
+    # if df == None:
+    #     df = pd.read_csv(user_opts["log_file"])
     print(f"Checking for \"{keyword}\" in group column...")
     print(f"LEN-start: {len(df)}")
+    orig_df_len = len(df)
+
     # print(df)
     df_notna_group = df[df['group'].notna()]
     # print(f"LEN-notna-group: {len(df_notna_group)}")
@@ -245,7 +271,8 @@ def trimmer(keyword :str, df=None):
     
 def main():
     argumentList = sys.argv[1:]
-    options = "sd:ml:ct:"
+    options = "sd:ml:ct:h"
+    options_tester = ["-s", "-d", "-m", "-l", "-c", "-t", "-h"]
 
     try:
         # Parsing argument
@@ -256,25 +283,34 @@ def main():
         # checking each argument
         for currentArgument, currentValue in arguments:
 
-            if currentArgument in ("-s"):
+
+            if currentArgument not in options_tester:
+                print(f"main(): option {currentArgument} not recognized")
+                continue
+
+            elif currentArgument == "-s":
                 user_opts["silent_mode"] = True
 
-            elif currentArgument in ("-d"):
+            elif currentArgument == "-d":
                 user_opts["plot_dir"] = currentValue
                 # TODO Sanity test '-d' option value
 
-            elif currentArgument in ("-m"):
-                user_opts["compress"] = True
-
-            elif currentArgument in ("-l"):
+            elif currentArgument == "-m":
                 user_opts["maint_mode"] = True
 
-            elif currentArgument in ("-c"):
+            elif currentArgument == "-l":
+                user_opts["log_file"] = currentValue
+
+            elif currentArgument == "-c":
                 user_opts["compress"] = True
 
-            elif currentArgument in ("-t"):
+            elif currentArgument == "-t":
                 user_opts["trim"] = currentValue
                 
+            elif currentArgument == "-h":
+                print(USAGE)
+                exit(0)
+
         if len(values) > 0:
             print(f"Unexpected value(s): {values} : ignored")
             exit() # should raise exception
@@ -302,17 +338,23 @@ def main():
             if split_name_len > 2:
                 print(f"main(): Problem processing log_file name \"{user_opts['log_file']}\"") 
                 exit(-1)
+        
+        # add a '/' to the end of the plot_dir if it doesnt have one
+        if "plot_dir" in user_opts:
+            if user_opts["plot_dir"][-1] != '/':
+                user_opts["plot_dir"] += '/'
 
         print(f"user_opts: {user_opts}")
 
 
 
     # Options gathered. Main code starts below
-    df = None
+    df = pd.read_csv(user_opts["log_file"])
+    orig_log_file_len = len(df)
     log_file_updated = False
 
     if "compress" in user_opts and user_opts["compress"] == True:
-        df = compressor()
+        df = compressor(df)
         log_file_updated = True
 
 
@@ -327,15 +369,17 @@ def main():
         exit()
 
     # Backup,update log_file to file system
-    print(f"Ready to update log with {len(df)} lines")
-    now = datetime.now()
-    now_str = now.strftime("%Y%d%m_%H%M%S")
-    backup_fullname = user_opts["log_file_path"] + user_opts["log_file_basename"] + \
-                      '_' + now_str + user_opts["log_file_extension"]
-    print(backup_fullname)
-    if os.path.isfile(user_opts["log_file"]):
-        os.rename(user_opts["log_file"], backup_fullname)
-    df.to_csv(user_opts["log_file"], index=False, mode="w")
+    if len(df) < orig_log_file_len:
+        now = datetime.now()
+        now_str = now.strftime("%Y%d%m_%H%M%S")
+        backup_fullname = user_opts["log_file_path"] + user_opts["log_file_basename"] + \
+                        '_' + now_str + user_opts["log_file_extension"]
+        if os.path.isfile(user_opts["log_file"]):
+            os.rename(user_opts["log_file"], backup_fullname)
+            print(f"Backed up log gile to: {backup_fullname}")
+        # Write new log_file
+        df.to_csv(user_opts["log_file"], index=False, mode="w")
+        print(f"Updated log with {len(df)} lines")
 
     # Run the analyzer on the updated logfile (only if not in maint_mode)
     if not user_opts["maint_mode"]:
