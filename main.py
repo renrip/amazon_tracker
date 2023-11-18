@@ -13,7 +13,10 @@ from my_messaging import send_twilio_message
 
 browser_headers = {
     "Accept-Language": "en-US,en;q=0.9",
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+    # "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+    # Amazon started sending "no robots" page with the previous string. works fine with newer one.
+    # Do they notice requests from different Chrome versions from the same IP? (works for now)
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
 }
 
 def main():
@@ -56,13 +59,14 @@ def main():
     else:
         wi = WatchedItems()
 
-    # TODO encapsulate the scraping to allow cleaner code, swaping scrapers
+    wi.load_list();
+
     watched_items = wi.items
 
-    # collected rows not used anymore. logged one by one
-    # leaving in in case I want to add a batch loggin method.
-    #output = []
+    items_logged = 0
 
+    # TODO encapsulate the scraping to allow cleaner code, swaping scrapers
+    
     for item in watched_items:
         # print(item)
         row = {}
@@ -76,7 +80,7 @@ def main():
         row["desc"] = item['desc']
         row["alert_price"] = float(item['alert_price'])
 
-        print(f"CHECKING: {item['url']} ({item['desc']})")
+        # print(f"CHECKING: {item['url']} ({item['desc']})")
 
         response = requests.get(item["url"], headers=browser_headers)
         # print(f"HTTP Status: {response.status_code}")
@@ -84,8 +88,10 @@ def main():
 
         # soup = BeautifulSoup(response.text, "html.parser")
         soup = BeautifulSoup(response.text, "lxml")
+        # print(soup)
 
         product_title = soup.select_one(selector="#productTitle").getText().strip()
+        # print(product_title)
 
         # print(f"PRODUCT_TITLE: {product_title}")
         row["title"] = product_title
@@ -130,23 +136,16 @@ def main():
         row["price_final"] = price_final
 
         if price_final <= row['alert_price']:
-            send_twilio_message(f"{item['url']} ({item['desc']}) is now ${price_final}")
+            alert_string = f"{item['url']} ({item['desc']}) is now ${price_final}"
+            print(alert_string)
+            send_twilio_message(alert_string)
 
-            
-            
-
-        #output.append(row)
-
-        wi.log_item(row)
+        if wi.log_item(row) == True:
+            items_logged += 1
 
         time.sleep(5)
-        
-    # Now logging one by one in the loop above
-    # for row in output:
-    #     print(f"row: {row}")
-    #     wi.log_item(row)
 
-
+    print(f"Logged {items_logged} of {len(watched_items)} items")    
 
 if __name__ == '__main__':
     main()
