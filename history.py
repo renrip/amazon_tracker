@@ -18,9 +18,9 @@ user_opts = {
 
 # override user_opts stuff for dev/testing
 # ******** COMMENT these BEFORE commiting ******
-# user_opts["silent_mode"] = True
-# user_opts["plot_dir"] = "./images"
-# user_opts["log_file"] = "cron_items_log.csv"
+user_opts["silent_mode"] = True
+user_opts["plot_dir"] = "./images"
+user_opts["log_file"] = "cron_items_log.csv"
 # user_opts["maint_mode"] = True
 # user_opts["compress"] = True
 # user_opts["yes_mode"] = True
@@ -59,15 +59,8 @@ def analyzer():
     urls = df.url.unique()
     # print(f"LEN-urls: {len(urls)}\n {urls}")
 
-    # get list of unique groups. use to group items into plots
-    groups_df = df.group.unique()
-    # print(f"groups_df type/len()/value: {type(groups_df)}/{len(groups_df)}/{groups_df}")
-
-    # only keep str rows (Pandas puts a float/NaN when a column value is not present)
-    groups = [g for g in groups_df if type(g) is not float]
-    # print(f"groups type/len()/value: {type(groups)}/{len(groups)}/{groups}")
-
-
+    # will build the groups list as we loop through and build each url Dataframe
+    groups = []
 
     # Build a dict () of dataframes split by the url (url is dict index)
     item_prices = {}
@@ -75,10 +68,15 @@ def analyzer():
         df_url = df.loc[df["url"] == url]
         item_prices[url] = df_url
         # print(f"{len(df_url)} unique prices for item {url}")
-        # print(df_url)
+
+        # Find and append the 'group' of the "last" row per url DataFrame
+        group = df_url.iloc[-1]['group']
+        # print(f"group/group type: {group}/{type(group)}")
+        # only add to the groups list if the value is a 'str'
+        if type(group) == str:
+            groups.append(group)
 
     # print(f"item_prices type: {type(item_prices)}\n {item_prices}")
-
 
     for g in groups:
         # print("operating on a group")
@@ -108,23 +106,12 @@ def analyzer():
                 #             list(item_prices[key].price_final.values))
 
             plt.xticks(rotation=60, ha='right')
-
-            # Use the last rows value of 'desc'
-            # Updating the spreadsheet will ultimately change the plot title
-            # Also get the url from that row just for consistency
-            # plt.title(item_prices[key][-1:].desc.item() + 
-            #           "\n(" + item_prices[key][-1:].url.item() + ")")
-            
-            
-
-            # Put these in the loop for 1-by-1 or here for all together.
-            ax.legend()
-            
+            ax.legend()            
             plt.tight_layout()
 
         if user_opts["silent_mode"] == True:
             today = datetime.now()
-            today_str = today.strftime("%Y%d%m")
+            today_str = today.strftime("%Y%m%d")
             # save with a date uniquifier, overwrite any from earlier in the day
             # print(f"Saving plt to:")
             # print(f"{user_opts['plot_dir']}{g}_{today_str}.png")
@@ -162,24 +149,12 @@ def analyzer():
             #             list(item_prices[key].price_final.values))
 
         plt.xticks(rotation=60, ha='right')
-
-        # Use the last rows value of 'desc'
-        # Updating the spreadsheet will ultimately change the plot title
-        # Also get the url from that row just for consistency
-        # plt.title(item_prices[key][-1:].desc.item() + 
-        #           "\n(" + item_prices[key][-1:].url.item() + ")")
-        
-        
-
-        # Put these in the loop for 1-by-1 or here for all together.
-        # ax.legend()
-        
         plt.tight_layout()
 
         if user_opts["silent_mode"] == True:
             # create uniquifier to append to logfile base name
             today = datetime.now()
-            today_str = today.strftime("%Y%d%m")
+            today_str = today.strftime("%Y%m%d")
 
             # Replace bad chars for filename in desc
             # so the user does not have to think about this in the spreadsheet
