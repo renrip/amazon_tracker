@@ -12,6 +12,7 @@ user_opts = {
     "plot_dir": "./" ,
     "maint_mode": False ,
     "log_file": "watched_items_log.csv" ,
+    "backup_dir": "./" ,
     "compress": False ,
     "yes_mode": False ,
     }
@@ -20,8 +21,9 @@ user_opts = {
 # ******** COMMENT these BEFORE commiting ******
 # user_opts["silent_mode"] = True
 # user_opts["plot_dir"] = "./images"
-# user_opts["log_file"] = "cron_items_log.csv"
 # user_opts["maint_mode"] = True
+# user_opts["log_file"] = "cron_items_log.csv"
+# user_opts["backup_dir"] = "./bakups"
 # user_opts["compress"] = True
 # user_opts["yes_mode"] = True
 # user_opts["trim"] = "TESTING"
@@ -33,6 +35,7 @@ Options:\n
     -d <directory> to write plots to. (default "./")
     -m Maintenance operations (-c, -t) only. Do not analyze log_file
     -l <log file name> to analyze or mainta== default "watched_items_log.csv")
+    -b <directory> to write log backups to. (default "./")
     -c Compress log file (removes redundant entries from the log file)
     -t <string> Trim log file rows with <string> as 'group' or within 'url'
     -y YES mode. Do trim operations without prompting
@@ -255,8 +258,8 @@ def trimmer(keyword :str, df):
     
 def main():
     argumentList = sys.argv[1:]
-    options = "sd:ml:ct:hy"
-    options_tester = ["-s", "-d", "-m", "-l", "-c", "-t", "-h", "-y"]
+    options = "sd:ml:b:ct:hy"
+    options_tester = ["-s", "-d", "-m", "-l", "-b", "-c", "-t", "-h", "-y"]
 
     try:
         # Parsing argument
@@ -284,6 +287,10 @@ def main():
 
             elif currentArgument == "-l":
                 user_opts["log_file"] = currentValue
+
+            elif currentArgument == "-b":
+                user_opts["backup_dir"] = currentValue
+                # TODO Sanity test '-b' option value
 
             elif currentArgument == "-c":
                 user_opts["compress"] = True
@@ -327,10 +334,11 @@ def main():
                 print(f"main(): Problem processing log_file name \"{user_opts['log_file']}\"") 
                 exit(-1)
         
-        # add a '/' to the end of the plot_dir if it doesnt have one
-        if "plot_dir" in user_opts:
-            if user_opts["plot_dir"][-1] != '/':
-                user_opts["plot_dir"] += '/'
+        # add a '/' to the end of the directory options
+        for opt in ["plot_dir", "backup_dir"]:
+            if opt in user_opts:
+                if user_opts[opt][-1] != '/':
+                    user_opts[opt] += '/'
 
         print(f"user_opts: {user_opts}")
 

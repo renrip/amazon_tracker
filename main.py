@@ -138,7 +138,11 @@ def main():
         if price_final <= row['alert_price']:
             alert_string = f"{item['url']} ({item['desc']}) is now ${price_final}"
             print(alert_string)
-            send_twilio_message(alert_string)
+            try:
+                send_twilio_message(alert_string)
+            except:
+                print("main(): Sending Twillow message failed")
+
 
         if wi.log_item(row) == True:
             items_logged += 1
