@@ -18,9 +18,9 @@ user_opts = {
 
 # override user_opts stuff for dev/testing
 # ******** COMMENT these BEFORE commiting ******
-user_opts["silent_mode"] = True
-user_opts["plot_dir"] = "./images"
-user_opts["log_file"] = "cron_items_log.csv"
+# user_opts["silent_mode"] = True
+# user_opts["plot_dir"] = "./images"
+# user_opts["log_file"] = "cron_items_log.csv"
 # user_opts["maint_mode"] = True
 # user_opts["compress"] = True
 # user_opts["yes_mode"] = True
@@ -72,8 +72,8 @@ def analyzer():
         # Find and append the 'group' of the "last" row per url DataFrame
         group = df_url.iloc[-1]['group']
         # print(f"group/group type: {group}/{type(group)}")
-        # only add to the groups list if the value is a 'str'
-        if type(group) == str:
+        # only add to the groups list if the value is a 'str' and only once
+        if type(group) == str and group not in groups:
             groups.append(group)
 
     # print(f"item_prices type: {type(item_prices)}\n {item_prices}")
