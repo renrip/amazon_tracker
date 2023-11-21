@@ -20,7 +20,7 @@ user_opts = {
 # ******** COMMENT these BEFORE commiting ******
 # user_opts["silent_mode"] = True
 # user_opts["plot_dir"] = "./images"
-user_opts["log_file"] = "cron_items_log.csv"
+# user_opts["log_file"] = "cron_items_log.csv"
 # user_opts["maint_mode"] = True
 # user_opts["compress"] = True
 # user_opts["yes_mode"] = True
