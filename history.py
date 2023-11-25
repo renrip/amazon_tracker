@@ -74,15 +74,19 @@ def analyzer():
 
         # Find and append the 'group' of the "last" row per url DataFrame
         group = df_url.iloc[-1]['group']
-        # print(f"group/group type: {group}/{type(group)}")
+        print(f"group/group type: {group}/{type(group)}")
         # only add to the groups list if the value is a 'str' and only once
         if type(group) == str and group not in groups:
+            print("inserting")
             groups.append(group)
+        else:
+            print("Not inserting")
+    print(f"{groups}")
 
     # print(f"item_prices type: {type(item_prices)}\n {item_prices}")
 
     for g in groups:
-        # print("operating on a group")
+        print(f"operating on group: {g}")
         ax = None
         # Build and display scatter plot(s)
         for key in item_prices:
@@ -279,8 +283,7 @@ def main():
                 user_opts["silent_mode"] = True
 
             elif currentArgument == "-d":
-                user_opts["plot_dir"] = currentValue
-                # TODO Sanity test '-d' option value
+                user_opts["plot_dir"] = currentValue # Sanity tested below
 
             elif currentArgument == "-m":
                 user_opts["maint_mode"] = True
@@ -289,8 +292,7 @@ def main():
                 user_opts["log_file"] = currentValue
 
             elif currentArgument == "-b":
-                user_opts["backup_dir"] = currentValue
-                # TODO Sanity test '-b' option value
+                user_opts["backup_dir"] = currentValue # Sanity tested below
 
             elif currentArgument == "-c":
                 user_opts["compress"] = True
@@ -315,33 +317,48 @@ def main():
         print(USAGE)
         exit(-1)
 
-    else:
-        # break out log_file (path, basename, extension) components
-        # TODO test with log_file values with (paths, multi '.', spaces, others?)
-        if "log_file" in user_opts:
-            user_opts["log_file_path"] = os.path.dirname(user_opts["log_file"])
-            # if there is a path, add the trailing '/' now
-            if len(user_opts["log_file_path"]):
-                user_opts["log_file_path"] += '/'
-            split_name = os.path.splitext(os.path.basename(user_opts["log_file"]))
-            split_name_len = len(split_name)
-            if split_name_len > 0:
-                user_opts["log_file_basename"] = split_name[0]
-            if split_name_len > 1:
-                user_opts["log_file_extension"] = split_name[-1]
-            # TODO if this can happen code to handle it
-            if split_name_len > 2:
-                print(f"main(): Problem processing log_file name \"{user_opts['log_file']}\"") 
-                exit(-1)
-        
-        # add a '/' to the end of the directory options
-        for opt in ["plot_dir", "backup_dir"]:
-            if opt in user_opts:
-                if user_opts[opt][-1] != '/':
-                    user_opts[opt] += '/'
+    # break out log_file (path, basename, extension) components
+    # TODO test with log_file values with (paths, multi '.', spaces, others?)
+    if "log_file" in user_opts:
+        user_opts["log_file_path"] = os.path.dirname(user_opts["log_file"])
+        # if there is a path, add the trailing '/' now
+        if len(user_opts["log_file_path"]):
+            user_opts["log_file_path"] += '/'
+        split_name = os.path.splitext(os.path.basename(user_opts["log_file"]))
+        split_name_len = len(split_name)
+        if split_name_len > 0:
+            user_opts["log_file_basename"] = split_name[0]
+        if split_name_len > 1:
+            user_opts["log_file_extension"] = split_name[-1]
+        # TODO if this can happen code to handle it
+        if split_name_len > 2:
+            print(f"main(): Problem processing log_file name \"{user_opts['log_file']}\"") 
+            exit(-1)
+    
+    # Sanity test directory options
+    for opt in ["plot_dir", "backup_dir"]:
+        if opt in user_opts:
+            # make sure directory ends with a '/' character
+            if user_opts[opt][-1] != '/':
+                user_opts[opt] += '/'
 
-        print(f"user_opts: {user_opts}")
+            # check for directory existance. Try to create if DNE
+            if user_opts[opt] != "./":
+                if not os.path.exists(user_opts[opt]):
+                    # try to make the directory
+                    try:
+                        os.makedirs(user_opts[opt], exist_ok=True)
+                    except:
+                        print(f"Directory ({user_opts[opt]}) does not exist or can't be created")
+                        exit(-1)
+                elif not os.path.isdir(user_opts[opt]): # exists...but is it a directory?
+                    print(f"Directory ({user_opts[opt]}) exists but is not a directory")
+                    exit(-1)
 
+
+
+    print(f"user_opts: {user_opts}")
+    # exit(0)
 
 
     ### Options gathered. Main code starts below
@@ -365,6 +382,9 @@ def main():
         now_str = now.strftime("%Y%d%m_%H%M%S")
         backup_fullname = user_opts["log_file_path"] + user_opts["log_file_basename"] + \
                         '_' + now_str + user_opts["log_file_extension"]
+        
+        if len(user_opts["backup_dir"]) > 0:
+            backup_fullname = user_opts["backup_dir"] + backup_fullname
 
         # Make backup of current log_file
         if os.path.isfile(user_opts["log_file"]):
