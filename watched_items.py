@@ -74,7 +74,7 @@ class WatchedItems():
         try:
             if not creds or not creds.valid:
                 if creds and creds.expired and creds.refresh_token:
-                    print("WatchedItems.load_list(): Goggle creds expired, refreshing")
+                    #print("WatchedItems.load_list(): Goggle creds expired, refreshing")
                     creds.refresh(Request())
                 else:
                     print("WatchedItems.load_list(): Creating Goggle creds")
@@ -121,6 +121,11 @@ class WatchedItems():
                 indices.append(desc_index)
                 alert_price_index = first_row.index("alert_price")
                 indices.append(alert_price_index)
+                # Grab indexes of optional colums
+                if "keywords" in first_row:
+                    keywords_index = first_row.index("keywords")
+                else:
+                    keywords_index = None
             else:
                 self.set_not_loaded_status('Not all required columns present')
                 return
@@ -141,9 +146,16 @@ class WatchedItems():
                     item_dict["url"] = row[url_index]
                     item_dict["desc"] = row[desc_index]
                     item_dict["alert_price"] = row[alert_price_index]
+                    # Add optional elements
+                    if keywords_index and keywords_index < len(row) and type(row[keywords_index]) == str:
+                        item_dict["keywords"] = row[keywords_index].split()
+                    # Put it on the list of items
                     self.items.append(item_dict)
-                else:
+
+                elif len(row) > 0:
                     print(f"Ignoring incoplete item row: {row}")
+
+                # Quietly ignore empty rows
 
             # print(f"items[]: {self.items}")
 

@@ -65,7 +65,8 @@ def main():
 
     items_logged = 0
 
-    # TODO encapsulate the scraping to allow cleaner code, swaping scrapers
+    # TODO encapsulate scraping to class. Use URL to know which site and how to scrape
+    # TODO Add internal scraping utils to notice/alert on bot rejection or other testable failures.
     
     for item in watched_items:
         # print(item)
@@ -142,6 +143,12 @@ def main():
                 send_twilio_message(alert_string)
             except:
                 print("main(): Sending Twillow message failed")
+
+        # if keywords present then check the description and print a warning to the log
+        if "keywords" in item:
+            for kw in item["keywords"]:
+                if kw not in row["title"]:
+                    print(f"Keyword: '{kw}' not found in item title:\n{item['url']} ({product_title}")
 
 
         if wi.log_item(row) == True:
