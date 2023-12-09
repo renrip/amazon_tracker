@@ -74,19 +74,20 @@ def analyzer():
 
         # Find and append the 'group' of the "last" row per url DataFrame
         group = df_url.iloc[-1]['group']
-        print(f"group/group type: {group}/{type(group)}")
+        # print(f"group/group type: {group}/{type(group)}")
         # only add to the groups list if the value is a 'str' and only once
         if type(group) == str and group not in groups:
-            print("inserting")
-            groups.append(group)
+            groups.append(group)#; print(f"Inserting: {group}")
         else:
-            print("Not inserting")
-    print(f"{groups}")
+            # print(f"Inserting: {group}")
+            pass
+
+    # print(f"{groups}")
 
     # print(f"item_prices type: {type(item_prices)}\n {item_prices}")
 
     for g in groups:
-        print(f"operating on group: {g}")
+        # print(f"operating on group: {g}")
         ax = None
         # Build and display scatter plot(s)
         for key in item_prices:
@@ -379,7 +380,7 @@ def main():
     # Backup,update log_file to file system (if compressed or trimmed)
     if len(df) < orig_log_file_len:
         now = datetime.now()
-        now_str = now.strftime("%Y%d%m_%H%M%S")
+        now_str = now.strftime("%Y%m%d_%H%M%S")
         backup_fullname = user_opts["log_file_path"] + user_opts["log_file_basename"] + \
                         '_' + now_str + user_opts["log_file_extension"]
         
@@ -389,7 +390,7 @@ def main():
         # Make backup of current log_file
         if os.path.isfile(user_opts["log_file"]):
             os.rename(user_opts["log_file"], backup_fullname)
-            print(f"Backed up log gile to: {backup_fullname}")
+            print(f"Backed up log file to: {backup_fullname}")
 
         # Write new log_file
         df.to_csv(user_opts["log_file"], index=False, mode="w")
