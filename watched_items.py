@@ -3,6 +3,10 @@ from __future__ import print_function
 import os
 import os.path
 from pathlib import Path
+from datetime import datetime as dt
+import requests
+from bs4 import BeautifulSoup
+import lxml
 
 from my_messaging import send_twilio_message
 
@@ -36,6 +40,13 @@ google_client_config = {
 # The ID and range of the WatchedItems Sheets doc
 SPREADSHEET_ID = '1fYlHIvW5hB1w69aFPSPxCf9cz4l5HM5Pk0ydBietdL8'
 RANGE_NAME = 'sheet1'
+
+
+browser_headers = {
+    "Accept-Language": "en-US,en;q=0.9",
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
+
 
 class WatchedItems():
 
@@ -180,6 +191,109 @@ class WatchedItems():
                 return False
             else:
                 return True
+    def validate_amazon_item(self, item: dict, row: dict, soup: BeautifulSoup):
+        row["test entry"] = "test value"
+        return True
+    
+    def scrape_amazon_item(self, item: dict, row: dict):
+
+        # print(f"CHECKING: {item['url']} ({item['desc']})")
+
+        # Create Beautiful Soup object first to pass to the validation method
+        # TODO try/catch rather than just raising 
+        response = requests.get(item["url"], headers=browser_headers)
+        # print(f"HTTP Status: {response.status_code}")
+
+        response.raise_for_status()
+
+        # soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response.text, "lxml")
+        # print(soup)
+
+        # return empty row (error) if validation tests not passed
+        if not self.validate_amazon_item(item, row, soup):
+            return row
+        
+        timestamp = dt.now()
+        row["date"] = timestamp.strftime("%Y-%m-%d")
+        row["time"] = timestamp.strftime("%H:%M:%S")
+
+
+        row["group"] = item['group']
+        row["url"] = item['url']
+        row["desc"] = item['desc']
+        row["alert_price"] = float(item['alert_price'])
+
+        product_title = soup.select_one(selector="#productTitle").getText().strip()
+        # print(product_title)
+
+        # print(f"PRODUCT_TITLE: {product_title}")
+        row["title"] = product_title
+
+        price_whole = soup.find(name="span", class_="a-price-whole").getText()
+        price_fraction = soup.find(name="span", class_="a-price-fraction").getText()
+        price = float(price_whole + price_fraction)
+
+        # print(f"WHOLE|FRACTION: {price_whole}|{price_fraction}")
+        # print(f"PRICE: {price}")
+        row["price"] = price
+
+        discount = 0
+        discount_percent = 0
+
+        labels = soup.find_all(name="label")
+        for l in labels:
+            splits = l.getText().split()
+            if len(splits) > 0 and splits[0] == "Apply" and splits[2] == "coupon":
+                # print(f"LABEL_SPLITS: {splits}")
+                if splits[1][0] == "$":
+                    discount = float(splits[1][1:])
+                    break
+                elif splits[1][-1] == "%":
+                    discount_percent = float(splits[1][:-1])
+                    break
+
+        # print(f"DISCOUNT: {discount}")
+        row["disc"] = discount
+        # print(f"DISCOUNT_percent: {discount_percent}")
+        row["disc_pct"] = discount_percent
+
+        price_final = price - discount
+
+        if discount_percent > 0:
+            price_final = price_final * (1 - discount_percent/100)
+        
+        price_final = round(price_final, 2)
+
+        # print(f"PRICE_FINAL: {price_final}")
+
+        row["price_final"] = price_final
+
+        # Check for keywords and set appropriate status
+        if "keywords" in item:
+            for kw in item["keywords"]:
+                if kw not in row["title"]:
+                    row["keywords_status"] = False
+                    row["keywords_missing"].append(kw)
+
+        return row
+
+
+    def scrape_item(self, item: dict):
+        # setup clean statuses. Pass this "return value / row" around the scraping methods
+        row = {"scrape_status": True,
+               "scrape_error": None,
+               "keywords_status": True,
+               "keywords_list": []}
+
+
+        if "www.amazon.com" in item["url"]:
+            row = self.scrape_amazon_item(item, row)
+        else:
+            row["scrape_status"] = False
+            row["scrape_error"] = f"Unsupported web site specified in URL: {item['url']}"
+
+        return row
 
     def log_item(self, item: dict):
         
