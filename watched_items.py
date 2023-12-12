@@ -39,13 +39,11 @@ RANGE_NAME = 'sheet1'
 
 class WatchedItems():
 
-    # TODO Move list loading out of constructor enabling WatchedItems to be a utility class
     def __init__(self, csv_log_file="watched_items_log.csv") -> None:
         self.loaded = False
         self.items = []
         self.error_msg = None
         self.csv_log_file = csv_log_file
-        # self.load_list()
 
     def set_not_loaded_status(self, msg="Unspecified"):
         self.loaded = False

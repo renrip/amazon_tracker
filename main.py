@@ -14,9 +14,10 @@ from my_messaging import send_twilio_message
 browser_headers = {
     "Accept-Language": "en-US,en;q=0.9",
     # "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36"
+    # "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
     # Amazon started sending "no robots" page with the previous string. works fine with newer one.
     # Do they notice requests from different Chrome versions from the same IP? (works for now)
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
 def main():
@@ -144,17 +145,19 @@ def main():
             except:
                 print("main(): Sending Twillow message failed")
 
-        # if keywords present then check the description and print a warning to the log
+        # if keywords are not present in the item title, print a warning and don't log the item
+        ignore_item = False
         if "keywords" in item:
             for kw in item["keywords"]:
                 if kw not in row["title"]:
                     print(f"Keyword: '{kw}' not found in item title:\n{item['url']} ({product_title}")
+                    ignore_item = True
 
+        if not ignore_item:
+            if wi.log_item(row) == True:
+                items_logged += 1
 
-        if wi.log_item(row) == True:
-            items_logged += 1
-
-        time.sleep(5)
+        time.sleep(3)
 
     print(f"Logged {items_logged} of {len(watched_items)} items")    
 
