@@ -47,8 +47,7 @@ def main():
     else:
         wi = WatchedItems()
 
-    wi.load_list();
-
+    wi.load_list()
     watched_items = wi.items
 
     items_logged = 0
@@ -76,8 +75,10 @@ def main():
         if row["scrape_status"]:
             if wi.log_item(row) == True:
                 items_logged += 1
+        else:
+            print(f"main(): Warning - ( {row['url']} ) scrape failure: {row['scrape_error']}")
 
-        time.sleep(3)
+        time.sleep(2)
 
     print(f"Logged {items_logged} of {len(watched_items)} items")    
 

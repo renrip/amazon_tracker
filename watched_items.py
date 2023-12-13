@@ -192,7 +192,15 @@ class WatchedItems():
             else:
                 return True
     def validate_amazon_item(self, item: dict, row: dict, soup: BeautifulSoup):
-        row["test entry"] = "test value"
+        avail_div = soup.find(id="availability_feature_div")
+        if avail_div:
+            spans = avail_div.find_all("span")
+            for s in spans:
+                if "unavailable" in s.getText():
+                    row["scrape_status"] = False
+                    row["scrape_error"] = "Appears Unavailable"
+                    return False
+                                    
         return True
     
     def scrape_amazon_item(self, item: dict, row: dict):
