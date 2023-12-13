@@ -13,8 +13,7 @@ def send_twilio_message(body: str, dest :str="+17209613665"):
     twilio_account_sid= os.environ.get("TWILIO_ACCOUNT_SID")
     twilio_auth_token = os.environ.get("TWILIO_AUTH_TOKEN")
 
-    # TODO fix cron setup so that it will see my ENV vars from .bashrc
-    print(f"Using Twillow act_sid/auth_token: {twilio_account_sid}/{twilio_auth_token}")
+    # print(f"Using Twillow act_sid/auth_token: {twilio_account_sid}/{twilio_auth_token}")
 
     client = Client(twilio_account_sid, twilio_auth_token)
 
